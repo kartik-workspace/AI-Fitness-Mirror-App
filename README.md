@@ -220,7 +220,7 @@ cd AI-Fitness-Mirror
 
 ## 🛡️ License
 
-This project is licensed under the [MIT License](https://github.com/kartik-workspace/custom_video_recorder_using_camera2_api/blob/master/LICENSE).
+This project is licensed under the [MIT License](https://github.com/kartik-workspace/AI-Fitness-Mirror-App/blob/master/LICENSE).
 © 2025 Kartik Waghmare. All rights reserved.
 
 ---
