@@ -18,5 +18,16 @@
         android:background="#80000000"
         android:padding="8dp"
         android:layout_margin="16dp"
-        android:layout_gravity="top|center"/>
+        android:layout_gravity="top|center" />
+
+    <!-- 🔁 Switch Camera Button -->
+    <Button
+        android:id="@+id/btnSwitchCamera"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🔁 Switch"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="32dp"
+        android:backgroundTint="@color/material_dynamic_primary0"
+        android:textColor="@android:color/white"/>
 </FrameLayout>

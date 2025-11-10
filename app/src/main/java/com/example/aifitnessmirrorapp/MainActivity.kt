@@ -11,22 +11,19 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import com.example.aifitnessmirrorapp.databinding.ActivityMainBinding
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var cameraExecutor: ExecutorService
+    private lateinit var cameraProvider: ProcessCameraProvider
+    private var lensFacing = CameraSelector.LENS_FACING_FRONT
 
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                startCamera()
-            } else {
-                Toast.makeText(this, "Camera permission is required", Toast.LENGTH_LONG).show()
-                binding.tvStatus.text = "Permission required"
-            }
+    // Permission launcher
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) startCamera()
+            else Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,14 +31,23 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        cameraExecutor = Executors.newSingleThreadExecutor()
-
-        // Check permission and ask if needed
+        // Request permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED) {
+            == PackageManager.PERMISSION_GRANTED
+        ) {
             startCamera()
         } else {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+
+        // Switch camera button
+        binding.btnSwitchCamera.setOnClickListener {
+            lensFacing = if (lensFacing == CameraSelector.LENS_FACING_FRONT)
+                CameraSelector.LENS_FACING_BACK
+            else
+                CameraSelector.LENS_FACING_FRONT
+
+            bindCameraUseCases()
         }
     }
 
@@ -49,31 +55,30 @@ class MainActivity : AppCompatActivity() {
         binding.tvStatus.text = "Starting camera..."
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            // Preview
-            val preview = Preview.Builder()
-                .build()
-                .also { it.surfaceProvider = binding.previewView.surfaceProvider }
-
-            // Select front camera by default; switch to DEFAULT_BACK_CAMERA if desired
-            val cameraSelector = CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                .build()
-
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview)
-                binding.tvStatus.text = "Camera started (front)"
-            } catch (exc: Exception) {
-                binding.tvStatus.text = "Failed to start camera"
-                Toast.makeText(this, "Error binding camera: ${exc.message}", Toast.LENGTH_LONG).show()
-            }
+            cameraProvider = cameraProviderFuture.get()
+            bindCameraUseCases()
         }, ContextCompat.getMainExecutor(this))
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
+    private fun bindCameraUseCases() {
+        val preview = Preview.Builder().build().also {
+            it.surfaceProvider = binding.previewView.surfaceProvider
+        }
+
+        val cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(lensFacing)
+            .build()
+
+        try {
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(this, cameraSelector, preview)
+            binding.tvStatus.text = if (lensFacing == CameraSelector.LENS_FACING_FRONT)
+                "Front camera started"
+            else
+                "Back camera started"
+        } catch (exc: Exception) {
+            binding.tvStatus.text = "Failed to bind camera"
+            Toast.makeText(this, "Error: ${exc.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }
